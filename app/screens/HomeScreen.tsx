@@ -1,48 +1,46 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { View } from "react-native";
 
 import io, { Socket } from "socket.io-client";
 import { DefaultEventsMap } from "@socket.io/component-emitter";
+import { GiftedChat, IMessage } from "react-native-gifted-chat";
 
 export default function HomeScreen() {
-  const [messageToSend, setMessageToSend] = useState("");
+  const [recvMessage, setRecvMessage] = useState<Array<IMessage>>([]);
+
   const socket = useRef<Socket<DefaultEventsMap, DefaultEventsMap>>();
 
   useEffect(() => {
-    try {
-      socket.current = io("http://192.168.10.8:3001/", {
-        transports: ["websocket"],
-      });
-    } catch (error) {
-      console.log(error);
-    }
+    socket.current = io("http://192.168.10.8:3001/", {
+      transports: ["websocket"],
+    });
+
+    socket.current.on("message", (messages: IMessage[]) => {
+      setRecvMessage((prev) => GiftedChat.append(prev, messages));
+    });
+
+    return () => {
+      socket.current?.disconnect();
+    };
   }, []);
 
-  const sendMessage = () => {
-    socket.current?.emit("message", messageToSend);
-    setMessageToSend("");
-  };
+  const onSend = useCallback((messages: IMessage[] = []) => {
+    socket.current?.emit("message", messages[0].text);
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <Text>Hello World & Hi</Text>
-      <TextInput
-        placeholder="Add a Chat Message..."
-        onChangeText={(text) => setMessageToSend(text)}
-        value={messageToSend}
-        onSubmitEditing={sendMessage}
+    <View style={{ flex: 1 }}>
+      <GiftedChat
+        messages={recvMessage}
+        onSend={(messages) => onSend(messages)}
+        user={{
+          _id: 1,
+          name: "Farasat Ali",
+          avatar: "https://picsum.photos/140",
+        }}
       />
       <StatusBar style="auto" />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
