@@ -1,24 +1,17 @@
 import { Server } from "socket.io";
+import { handleMessage } from "./handlers/message.handler";
 
 const io = new Server();
 
-//  {
-//     _id: 1,
-//     text: "Hello developer",
-//     createdAt: new Date(),
-//     user: {
-//       _id: 2,
-//       name: "React Native",
-//       avatar: "https://picsum.photos/140",
-//     },
-//   },
+let currentUserId = 2;
+const users: any = {};
 
 io.on("connection", (socket) => {
   console.log("a user connected");
-
-  socket.on("message", (message) => {
-    console.log(message);
-    io.emit("message", message);
+  users[socket.id] = { userId: currentUserId++ };
+  socket.on("join", (username) => {
+    users[socket.id].username = username;
+    handleMessage(socket, users);
   });
 });
 
